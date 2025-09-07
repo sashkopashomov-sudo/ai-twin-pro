@@ -8,24 +8,38 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function sendMessage(e) {
-    e.preventDefault();
-    const content = input.trim();
-    if (!content) return;
-    const newMessages = [...messages, { role: "user", content }];
-    setMessages(newMessages);
-    setInput("");
-    setLoading(true);
+async function sendMessage(e) {
+  e.preventDefault();
+  const content = input.trim();
+  if (!content) return;
+  const newMessages = [...messages, { role: "user", content }];
+  setMessages(newMessages);
+  setInput("");
+  setLoading(true);
 
+  try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: newMessages }),
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      setMessages([...newMessages, { role: "assistant", content: "⚠️ Грешка: " + text }]);
+      setLoading(false);
+      return;
+    }
+
     const data = await res.json();
     setMessages([...newMessages, { role: "assistant", content: data.reply }]);
+  } catch (err) {
+    setMessages([...newMessages, { role: "assistant", content: "⚠️ Грешка (мрежа/сървър): " + (err?.message || err) }]);
+  } finally {
     setLoading(false);
   }
+}
+
 
   return (
     <main style={{ maxWidth: 600, margin: "20px auto", padding: 20 }}>
